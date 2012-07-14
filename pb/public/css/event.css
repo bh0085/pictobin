@@ -1,0 +1,57 @@
+#dropzone {
+	  pointer-events:none;
+    position:absolute;	
+    background: transparent;
+    top:0px;
+    bottom:0px;
+    left:0px;
+    right:0px;
+    z-index:-100;
+}
+#dropzone.in {
+    background:#BEB;
+}
+
+#dropzone.hover {
+    background:#000;
+}
+#dropzone.fade {
+    -webkit-transition: all 0.1s ease-out;
+    -moz-transition: all 0.1s ease-out;
+    -ms-transition: all 0.1s ease-out;
+    -o-transition: all 0.1s ease-out;
+    transition: all 0.1s ease-out;
+    opacity: 1;
+}
+
+.galleryContainer{
+	position:relative;
+}
+.galleryContainer>.gallery{
+	position:relative;
+	max-height:30em;
+	overflow-y:auto;
+	box-sizing:border-box;
+	padding-right:15em;
+}
+.galleryContainer.expanded>.gallery{
+	max-height:none;
+	height:auto;
+}
+
+.gallery-expansion-toggle{
+	position:absolute;
+	top:0em;
+	right:0em;
+	width:auto;
+}
+.gallery-expansion-toggle *{
+		display:none;	  
+}
+.galleryContainer.expanded .gallery-expansion-toggle .expanded{
+		 display:block;
+}
+
+.galleryContainer:not(.expanded) .gallery-expansion-toggle .collapsed{
+		display:block;
+}
