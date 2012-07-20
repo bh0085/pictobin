@@ -32,14 +32,16 @@ def page_gallery(request):
     key = request.matchdict['key']
     c= {}
     ah.addEventContext(key,c)
+
+    c['pictures'] = gh.pics(key, limit=10)
     return c
 
-@view_config(route_name="administer",renderer='administer.mako',http_cache=default_cache)
-def page_administer(request):
-    output = {}
-    key = request.matchdict['key']
-    ah.addEventContext(key, output)
-    return output
+# @view_config(route_name="administer",renderer='administer.mako',http_cache=default_cache)
+# def page_administer(request):
+#     output = {}
+#     key = request.matchdict['key']
+#     ah.addEventContext(key, output)
+#     return output
 
 @view_config(route_name="make_event",http_cache=default_cache)
 def make_event(request):
@@ -81,6 +83,29 @@ def getPicsJSON(request):
     key=request.matchdict['key']
     return gh.pics(key)
 
+
+@view_config(route_name="pics_rest_collection",http_cache=default_cache,renderer='json')
+def pics_rest_col(request):
+    key=request.matchdict['key']
+    pid=request.matchdict.get('id', None)
+
+    if pid is None:
+       pass 
+
+    return gh.pics(key, **request.params)
+
+@view_config(route_name="pics_rest",http_cache=default_cache,renderer='json')
+def pics_rest(request):
+    key=request.matchdict['key']
+    pid=request.matchdict.get('id', None)
+
+
+    if pid is None:
+       pass 
+
+    return gh.pics(key, **request.params)
+
+
 @view_config(route_name="uploads_posted",http_cache=default_cache,renderer='json')
 def uploads_posted(request):
         eventKey = request.matchdict['key']
@@ -94,7 +119,7 @@ def uploads_posted(request):
         for v in values:
             picInfo = request.params.get('picInfo', 
                                          {'name':'untitled',
-                                          'creator_name':'anonymous'                                          })
+                                          'creator_name':'anonymous'  })
         
             fdata = v.file.read()
             newPicture = Picture(creator_name = picInfo['creator_name'],
@@ -114,7 +139,7 @@ def uploads_posted(request):
             def get_exif(fn):
                 ret = {}
                 i = Image.open(fn)
-                info = i._getexif()
+                info = i._getexif() or {}
                 for tag, value in info.items():
                     decoded = TAGS.get(tag, tag)
                     ret[decoded] = value

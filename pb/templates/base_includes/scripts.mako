@@ -1,4 +1,10 @@
 
+
+    <script src="/js/deps/underscore-min.js"></script>
+    <script src="/js/deps/backbone-min.js"></script>
+    <script src="/js/deps/date.js"></script>    
+
+
     <!-- Placed at the end of the document so the pages load faster -->
     <script src="/js/deps/bootstrap/js/bootstrap-transition.js"></script>
     <script src="/js/deps/bootstrap/js/bootstrap-alert.js"></script>
@@ -15,6 +21,10 @@
     <script type="text/javascript" src="/js/import/fileupload_callbacks.js"></script>
     <script src="/js/gallery/gallery_scripts.js"></script>
 
- 
-    <script src="/js/deps/backbone-min.js"></script>
     <script src="/js/deps/underscore-min.js"></script>
+    <script src="/js/deps/backbone-min.js"></script>
+
+    <script src="/js/deps/file_upload/vendor/jquery.ui.widget.js"></script>
+    <script src="/js/deps/file_upload/jquery.iframe-transport.js"></script>
+    <script src="/js/deps/file_upload/jquery.fileupload.js"></script>
+    <script src="/js/import/file_upload.js"></script>

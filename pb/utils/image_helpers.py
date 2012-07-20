@@ -7,11 +7,12 @@ Image utilities that may be reused. Mostly, generates thumbnails!
 import subprocess as spc, os;
 
 size_lookup = {
-    'big':100,
+    'big':500,
+    'mid':100,
     'small':32
 }
 
-def updateThumbs(rowId, sizes = ['big', 'small']):
+def updateThumbs(rowId, sizes = ['big', 'mid', 'small']):
     import file_helpers as fh
     filePath = fh.getFilePathByPictureId(rowId)
     for s in sizes:

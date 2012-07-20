@@ -1,3 +1,114 @@
+
+
+
+.gallery-view {
+    min-height:3em;
+    position:relative;
+    height:auto;
+    padding:20px;
+    margin:.5em;
+    margin-bottom: 2em;
+    border-radius: 1em;
+
+    .pic-view{
+
+        float: left;
+        .pic-container{
+            overflow:hidden;
+        }
+        .pic-info {
+            display:none;
+        }
+
+
+        .small-view {
+
+            width: 20px;
+            height: 20px;
+            margin: 0px;
+            padding: 0px;
+
+            .pic-container{
+                width: 20px;  
+                height: 20px; 
+            }
+
+            .mid-thumbnail, .big-thumbnail {
+                display: none;
+            }
+        }
+
+         .mid-view {
+            width: 50px;
+            height: 30px;
+            margin: 0px;
+            padding: 0px;
+
+            .pic-container{
+                width: 50px;  
+                height: 30px; 
+            }
+
+            .small-thumbnail, .big-thumbnail {
+                display: none;
+            }
+        }        
+
+        .big-view {
+            .pic-info {
+                display: inline-block;
+            }
+            width: 120px;
+            height: 120px;
+            margin: 1em;
+
+            .pic-container{
+                width: 100px;  
+                height: 100px; 
+            }
+
+            .small-thumbnail, .mid-thumbnail {
+                display:none;
+            }
+        }
+
+    }
+}
+
+
+.gallery-view{
+    min-height: 200px;
+
+    .pic-preview {
+        min-width: 400px;
+        min-height: 300px;
+        
+        .preview-container {
+            min-height: 300px;
+        }
+    }
+}
+
+
+
+
+.big-hint{
+    position:fixed;
+    bottom:0px;
+    right:0px;
+    margin:1em;
+    color:maroon;
+    background-color:white;
+     border-bottom-right-radius:16px;
+ border-top-right-radius:16px;
+ border-bottom-left-radius:16px;
+ opacity:.8;
+ padding:1em;
+ border: 5px lightgray solid;
+}
+
+
+
 #dropzone {
     pointer-events:none;
     position:absolute;	
@@ -168,18 +279,3 @@ li.nav-item a{
     overflow:hidden;
 }
 
-
-.big-hint{
-    position:fixed;
-    bottom:0px;
-    right:0px;
-    margin:1em;
-    color:maroon;
-    background-color:white;
-     border-bottom-right-radius:16px;
- border-top-right-radius:16px;
- border-bottom-left-radius:16px;
- opacity:.8;
- padding:1em;
- border: 5px lightgray solid;
-}

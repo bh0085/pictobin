@@ -7517,6 +7517,86 @@ a.badge:hover {
   border-top-right-radius: 16px;
   border-bottom-left-radius: 16px;
 }
+.gallery-view {
+  min-height: 3em;
+  position: relative;
+  height: auto;
+  padding: 20px;
+  margin: .5em;
+  margin-bottom: 2em;
+  border-radius: 1em;
+}
+.gallery-view .pic-view {
+  float: left;
+}
+.gallery-view .pic-view .pic-container {
+  overflow: hidden;
+}
+.gallery-view .pic-view .pic-info {
+  display: none;
+}
+.gallery-view .pic-view .small-view {
+  width: 20px;
+  height: 20px;
+  margin: 0px;
+  padding: 0px;
+}
+.gallery-view .pic-view .small-view .pic-container {
+  width: 20px;
+  height: 20px;
+}
+.gallery-view .pic-view .small-view .mid-thumbnail,
+.gallery-view .pic-view .small-view .big-thumbnail {
+  display: none;
+}
+.gallery-view .pic-view .mid-view {
+  width: 50px;
+  height: 30px;
+  margin: 0px;
+  padding: 0px;
+}
+.gallery-view .pic-view .mid-view .pic-container {
+  width: 50px;
+  height: 30px;
+}
+.gallery-view .pic-view .mid-view .small-thumbnail,
+.gallery-view .pic-view .mid-view .big-thumbnail {
+  display: none;
+}
+.gallery-view .pic-view .big-view {
+  width: 120px;
+  height: 120px;
+  margin: 1em;
+}
+.gallery-view .pic-view .big-view .pic-info {
+  display: inline-block;
+}
+.gallery-view .pic-view .big-view .pic-container {
+  width: 100px;
+  height: 100px;
+}
+.gallery-view .pic-view .big-view .small-thumbnail,
+.gallery-view .pic-view .big-view .mid-thumbnail {
+  display: none;
+}
+.pic-preview {
+  min-width: 400px;
+  min-height: 200px;
+}
+.big-hint {
+  position: fixed;
+  bottom: 0px;
+  right: 0px;
+  margin: 1em;
+  color: maroon;
+  background-color: white;
+  border-bottom-right-radius: 16px;
+  border-top-right-radius: 16px;
+  border-bottom-left-radius: 16px;
+  opacity: .8;
+  padding: 1em;
+  border: 5px lightgray solid;
+}
 #dropzone {
   pointer-events: none;
   position: absolute;
@@ -7651,18 +7731,4 @@ a.badge:hover {
 li.nav-item a {
   text-overflow: ellipsis;
   overflow: hidden;
-}
-.big-hint {
-  position: fixed;
-  bottom: 0px;
-  right: 0px;
-  margin: 1em;
-  color: maroon;
-  background-color: white;
-  border-bottom-right-radius: 16px;
-  border-top-right-radius: 16px;
-  border-bottom-left-radius: 16px;
-  opacity: .8;
-  padding: 1em;
-  border: 5px lightgray solid;
 }

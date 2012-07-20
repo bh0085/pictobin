@@ -1,512 +1,388 @@
+var cache = null;
+var curview = null;
 
-$(function(){
-      var confLinks;
-      confLinks = $('.nav-list').find("a");
-      confLinks.click(
-	  function(){
-	      $(this).parent().siblings()
-		  .filter('.nav-'+$(this).parent().attr('ngroup'))
-		  .removeClass('active');
-	      $(this).parent().addClass('active');
-	      justRefresh();
-	  }
-	  
-      );
-  })
+_.templateSettings = {
+      interpolate : /\{\{(.+?)\}\}/g
+};
 
 
-/** state globals */
-var currentGroupingStrategyName = null;
-var activeGroups = null;
+var Pic = Backbone.Model.extend({
 
-grpStrategies = {
-    "creator":{
-	keyFun:function(info){
-	
-	    return info.creator_name;
-	},
-	displayFun:function(key){
-	    return key+"'s photos";
-	}
+    defaults : function() {
+        return {
+            added: '',
+            age: 0,
+            big_thumbnail_address: '',
+            creator_name: '',
+            file_address: '',
+            file_name: '',
+            gallery_id: null,
+            id: null,
+            meta: {},
+            name: '',
+            small_thumbnail_address: ''};
     },
-    "single":{
-	keyFun:function(info){
-	    return "All pictures";
-	}
+
+    initialize: function(data) {
     },
-    "day":{
-	keyFun:function(info){
-	    return Math.ceil(info.age / 60/60/24);
-	},
-	displayFun:function(key){
-	    return "Pics from day "+key;
-	}
-    }
-}
-sortStrategies = {
-    "time":{
-	keyFun:function(info){
-	    return info.age;
-	},
-	displayFun:function(){
-	    return "Date taken";
-	}
+
+    clear: function() {
+        this.destroy();
     },
-    "favorites":{
-	keyFun:function(info){
-	    return -1 *info.favorites;
-	},
-	displayFun:function(){
-	    return "Number of Favorites.";
-	}
+
+    day: function() {
+        var date = Date.today();
+        try {
+            var dt = this.get('meta')['DateTime'];
+            var datestr = dt.match(/.*\s/)[0];
+            datestr = datestr.replace(/:/g, '-');
+            datestr = datestr.replace(/"/g, '');
+            date = Date.parse(datestr);
+        } catch (e) {
+            date = Date.today();
+        }
+        return date;
     },
-    "name":{
-	keyFun:function(info){
-	    return info.name;
-	}
+
+    datetime: function() {
+        var time = Date.now();
+        try {
+            var dt = this.get('meta')['DateTime'];
+            dt = dt.replace(/"/g, '');            
+            var datestr = dt.match(/.*\s/)[0];
+            datestr = datestr.replace(/:/g, '-');
+            timestr = dt.match(/\s.*/)[0]
+            time = Date.parse(datestr + timestr);
+        } catch (e) {
+            time = Date.now();
+        }
+        return time;
+
+    }
+
+    
+
+});
+
+var PicCache = Backbone.Collection.extend({
+    
+    model: Pic,
+    
+    url: '/pics/',
+
+    gb_name: null,
+
+    gb_key: null,
+
+    comparator: function(pic) {
+        return pic.datetime();
     },
-    "comments":{
-	keyFun:function(info){
-	    return info.comments.length;	    
-	}
-    }
-}
 
-function getGroupSchema(){
-    selectedGroups = $('.nav-group.nav-item').filter('.active');
-    if (selectedGroups.length == 0)
-    {
-	grpsName = 'single';
-    } else{
-	grpsName = selectedGroups.children('a').attr('name');
-    }
-    strat = grpStrategies[grpsName];
-    if (strat === undefined){
-	throw 'unrecognized grouping: ' + grpsName;
-    }
-    return {name:grpsName,
-	    strategy:strat};
-    
-    
-}
-function getSortSchema(){
-    selectedSorts = $('.nav-sort.nav-item').filter('.active');
-    if (selectedSorts.length == 0)
-    {
-	grpsName = 'time';
-    } else{
-	grpsName = selectedSorts.children('a').attr('name');
-    }
-    strat = sortStrategies[grpsName];
-    if (strat === undefined){
-	throw 'unrecognized grouping: ' + grpsName;
-    }
-    return {name:grpsName,
-	    strategy:strat};
-    
-       
-}
-function gatherPictures(){
-    var galleryRows, picContainers;
-    galleryRows = $('.gallery');
-    picContainers = galleryRows.find('.item-container');
-    return picContainers;
-}
+    initialize: function(models, opts) {
+        if (opts.url) this.url = opts.url;
+        if (opts.gb_key) this.gb_key = opts.gb_key;
+        this.opts = opts;
 
-/** 
- * Groups all of the pictures have been added to
- * (non aggregative) galleries on the page.
- */
-function groupPictures(schema, picContainers){
-    var info, galleryRows, infos, groups, k, g, galleryContainer, header, row,
-    i, j, e, currentGroups;
+    },
 
-    if (picContainers === null || picContainers === undefined){
-	picContainers = gatherPictures();
+    getMore: function() {
+        var maxid = _.max(this.models, function(p) {
+            return p.get('id');
+        }, this).get('id');
+
+        this.fetch({
+            data: { gb_key: this.gb_key, 
+                    maxid: maxid, 
+                    limit: 5},
+            add: true
+        });
     }
 
-    infos = $.map(picContainers,
-		  function(e,i){
-		      info = {elt:e};
-		      $.extend(info,$(e).data().info);
-		      return info;
-		  });
 
-    groups = groupby_as_array(
-	sorted(infos,function(x,y){
-		   return( compare(schema.strategy.keyFun(x),
-				   schema.strategy.keyFun(y)))
-			 }),
-	schema.strategy.keyFun
-    );
-    
-    for ( i = 0 ; i < groups.length ; i++){
-	k = groups[i][0];
-	g = groups[i][1];
-	galleryContainer=makeGalleryContainer(schema,k);
 
-	row = galleryContainer.find('.gallery');
-	for ( j = 0 ; j < g.length ; j++){
-	    e = g[j].elt;
-	    $(e).appendTo(row);	    
-	}
-	
-    }
-    currentGroups =$('.galleryContainer');
-    for (i = 0 ; i < currentGroups.length; i++){
-	g =$(currentGroups[i]);
-	if(g.find('.item').length == 0){
-	    g.remove();
-	}
-    }
+});
 
-    activeGroups = {};
-    currentGroups =$('.galleryContainer');
-    for(i = 0; i <  currentGroups.length ; i++){
-	activeGroups[$(currentGroups[i]).attr('keyVal')] = currentGroups[i];	
-    }
-    currentGroupingStrategyName = schema.name;
-    console.log("GROUPED!")
 
-}
-/**
- * Makes a new gallery container for a group that does
- * not yet exist in the DOM.
- */
-function makeGalleryContainer(grpSchema,keyVal){
-    galleryContainer = $('<div>',{'class':'galleryContainer expanded'})
-	.attr('keyVal',keyVal);
-    header = $('<div>', {'class':'row-fluid'})
-	.append($('<div>', {'class':'span12'})
-		.append($('<h3>')
-			.append($('<span>',{'class':'galleryHeaderText'})
-				.text(keyVal)
-				.data({'defaultName':
-				       grpSchema.strategy.hasOwnProperty('displayFun')?
-				       grpSchema.strategy.displayFun(keyVal):
-				       keyVal
-				      }))
-			.append($('<span>',{'class':'gallery-expansion-toggle'})
-				.append($('<span>',{'class':'expanded'})
-					.text('Collapse'))
-				.append($('<span>',{'class':'collapsed'})
-					.text('Expand'))
-			       )))
-	.appendTo(galleryContainer);
-    
-    row = $('<div>',{'class':'hero-unit galleryRow'})
-	.append($('<div>',{'class':'row-fluid'})
-		.append($('<div>',{'class':'gallery span12'})))
-	.appendTo(galleryContainer);
-    galleryContainer.appendTo($('.galleriesContainer'));
-    
-    galleryContainer.find('.gallery-expansion-toggle')
-	.click(function(e){
-		   console.log(this);
-		   $($(this).parentsUntil('.galleryContainer').slice(-1)[0]).parent().toggleClass('expanded');
-	       });
-    return galleryContainer;
-}
+// on file upload callback, call piccache.create with results
+// on page load, call piccache.reset(LIST OF JSON PICTURES)
+//
+//
 
-/* Scripts that add, remove and alter pictures in galleries.*/
-/**
- * Updates pics or adds to the DOM.
- */
-function updateGallery(pics){
-    var i, picItems, picsDict, needs_add, pid;
-    picItems = $('.gallery').find('.item-container');
-    picsDict = {    };
-    for(i = 0 ; i < picItems.length ; i++){
-	picsDict[$(picItems[i]).data().info.id] = picItems[i];
+
+
+
+var PicView = Backbone.View.extend({
+
+    tagName: 'div',
+
+    className: 'pic-view',
+
+    template: _.template($('#picview-template').html()),
+
+    allowHover: false,
+
+    container: null,
+
+    events: {
+        'click .button'   : 'btnClick',
+        'mouseover img' : 'imgHover'
+    },
+
+    initialize: function(args){
+        this.container = args.container;
+
+        this.model.bind('change', this.render, this);
+        this.model.bind('destroy', this.remove, this);
+        this.render();
+
+
+    },
+
+    btnClick: function() {
+        cache.fetch();
+    },
+
+    render: function() {
+        console.log(['picview', this.size]);
+        this.$el.html(this.template(this.model.toJSON()));
+        this.changeSize(this.size);
+        return this;
+    },
+
+    imgHover: function() {
+        if (this.allowHover) {
+            var preview = this.container.$('.pic-preview');
+            preview.empty().append(this.$('.big-thumbnail').clone());
+        }
+    },
+
+    changeSize: function() {
+        var size = this.container.size;
+        this.$el.children().attr('class', size+'-view');        
+        this.allowHover = (size != 'big');
+    },
+
+    clear: function() {
+        this.model.clear();
     }
 
-    needs_add = [];
-    for (i = 0 ; i < pics.length ; i++){
-	pid = pics[i].id;
-	if (picsDict.hasOwnProperty(pid)){
-	    updatePic(picsDict[pid],pics[i]);
-	} else {
-	    needs_add.push(pics[i]);
-	}
-    }
+})
 
-    addPictures(needs_add);
-}
-/**
- * Updates pics, adds or removes from the DOM.
- */
-function updateGalleryFullyFromServer(data){
-    var elt, i, pic, newIds, oldIds, deleteList, updateList, link,
-    link_container, grpSchema, currentGroupingStrategyName;
+
+var GalleryView = Backbone.View.extend({
+
+
+    tagName: 'div',
+
+    className: 'hero-unit galleryRow gallery-view',
+
+    template: _.template($('#gallery-template').html()),
+
+    title: "All Pictures",
+
+    size: 'big',
+
+    events: {
+        'click .button' : 'getMore'
+    },
+
+    initialize: function(args) {
+        this.pictures = args.collection;
+        if (args.size) this.size = args.size;
+        if (args.title) this.title = args.title;
         
-    newIds = $.map(data, function(e){
-		       return e.id;
-		   });
-    oldIds = $.map(gatherPictures(),
-		  function(e){
-		      return $(e).data().info.id;
-		  });
-    
-    /* Delete list contains elements in the DOM tree*/
-    deleteList = $.map(oldIds, function(e,i){
-			   return newIds.indexOf(e) === -1
-			       ? elt.children()[i] : null;
-		       });
-   for (i = 0 ; i < deleteList.length; i++){
-	deleteList[i].remove();
-   }
+        this.picviews = [];
+        
+        this.pictures.bind('add', this.addOne, this);
+        this.pictures.bind('reset', this.render, this); 
+        this.pictures.bind('remove', this.removeOne, this);
+    },
+
+    addOne: function(pic) {
+        var view = new PicView({
+            model: pic, 
+            size: this.size,
+            container: this
+        });
+        this.picviews.push(view);
+        this.$('.gallery-container').append(view.el);
+    },
+
+    addAll: function() {
+        this.pictures.each(this.addOne, this);
+    },
+
+    removeOne: function(model) {
+        model.clear()
+    },
+
+    getMore: function() {
+        console.log(this);
+        this.pictures.getMore()
+    },
+
+    // size should be "small", or "big"
+    changeSize: function(size) {
+        this.size = size;
+
+        _.each(this.picviews, function(view) {
+            view.changeSize();
+        }, this);
 
 
-    /* Add list contains pict info objects */
-    updateList = $.map(newIds, function(e,i){
-			   return oldIds.indexOf(e) === -1 
-			       ? data[i] : null;
-		       }); 
-    addPictures(updateList);
+        var cont = this.$('.gallery-container');
+        var preview = this.$('.pic-preview');
+        if (size != 'big') {
+            cont.removeClass('span12').addClass('span4');
+            preview.show();
+        } else {    
+            cont.removeClass('span4').addClass('span12');
+            preview.hide();
+        }
 
-}
+    },
 
-function updatePic(elt, info){
-    $(elt).find('.fancybox-label.above')
-	.text(info.name);
-    $(elt).find('.fancybox-label.below')
-	.text(info.creator_name);
-    $(elt).find('.fancybox-label.float')
-	.find('.favs-indicator')
-	.find('btn')
-	.text(String(Math.floor(Math.random()*10)));
-}
-
-
-function addPictures(pics){
-    var pic, link_container, link, i, groupKey, galleryRow, grpSchema,
-    j;
-
-    grpSchema = getGroupSchema();
-    for(i = 0 ; i < pics.length; i++){
-	pic =pics[i];
-
-	/*
-	 Mock server variables.
-	 */
-	pic.favorites = Math.floor(Math.random() * 5);
-	pic.comments = [];
-	for (j = 0 ; j <Math.floor(Math.random()) * 5; j++){
-	    pic.comments.push('This is a big fat comment!');  
-	}
-
-	link_container = $('<div>',
-			   {style:'display:inline-block;position:relative;'})
-	    .addClass('fancybox-container item-container')
-	    .hover(function(){
-		       $(this).addClass('hover');
-		   },
-		   function(){
-		       $(this).removeClass('hover');
-		   });
-	
-	link = $('<a>',
-		     {'class':'fancybox item',
-		      'rel':'group',
-		      'href':pic.file_address
-		     }).data({})
-		   .append($('<img>',
-			     {'src':pic.big_thumbnail_address,
-			      'alt':""}));
-	
-	link_container.data().info = pic;
-	link_container.append($("<div>").addClass('fancybox-invisible-frame'));
-	link_container.append($('<div>').addClass('fancybox-frame'));
-	link_container.append(
-	    $('<div>',
-	      { "class":"fancybox-label float" }).
-		append($("<span>",{"class":"favs-indicator"})
-		       .append($('<span>',{"class":"btn btn-primary btn-small"})
-			       .text(String(pic.favorites))
-			       .append($('<i>',{"class":"icon-flag icon-white"})))));
-	
-	link_container.append(highlightClickLabel(pic));
-	link_container.append(link);
-	link_container.append($('<div>',
-				 {"class":"fancybox-label below"})
-			      .text(pic.creator_name));
-	
-	
-	groupKey = grpSchema.strategy.keyFun(pic);
-	if (! activeGroups.hasOwnProperty(groupKey)){
-	    activeGroups[groupKey] = makeGalleryContainer(grpSchema,groupKey);
-	}
-	galleryRow = $(activeGroups[groupKey]).find('.gallery'); 
-	galleryRow.append(link_container);
-
-
+    render: function() {
+        console.log("galleryrender");
+        var html = this.template({title: this.title});
+        this.$el.html(html);
+        this.pictures.each(this.addOne, this);
+        this.changeSize(this.size);
+        return this;
     }
-}
 
-/**
- * When new data is received from the server, refreshes
- * any stale pictures and recomputes grouping/sort as
- * needed.
- */
-function serverUpdateCallback(data){
-    refreshGrouping();
-    updateGalleryFullyFromServer(data);
-    refreshSorting();
-    refreshAggregates();
-}
-/**
- *  refreshAll()
- */
-function justRefresh(){
-    refreshGrouping();
-    refreshSorting();
-    refreshAggregates();
-}
-/**
- * Recompute groups. Delete empty ones and switch group 
- * strats as needed.
- */
-function refreshGrouping(){
-    var grpSchema;
-    grpSchema = getGroupSchema();
-    if ((grpSchema.name != currentGroupingStrategyName ) || activeGroups==null){
-	groupPictures(grpSchema);
+
+})
+
+
+var GroupView = GalleryView.extend({
+
+    className: '',
+
+    template: _.template($('#group-gallery-template').html()),
+
+    size: 'big',
+
+    /*
+        Computes a group by and constructs gallery views for each group
+
+    */
+    initialize: function(args) {
+        this.pictures = args.collection;
+        this.gb_func = args.gb_func || function(p) {return ''+p.attributes['id']%3;};
+        this.gb_name = args.gb_name
+        if (args.size) this.size = args.size;
+
+
+        // compute the group-by and call galleryFromPics to
+        // create the per-group view
+        var groups = this.pictures.groupBy(this.gb_func);
+        this.groups = {};
+        group_views = _.map(groups, function(group,k) {
+            var group_view = this.galleryFromPics(k, group);
+            this.groups[k] = group_view;
+            return null;
+
+        }, this);
+
+        this.pictures.bind('add', this.addOne, this);
+        this.pictures.bind('reset', this.addAll, this); 
+    },
+ 
+
+    /*
+        Constructs a new gallery view if one doesn't exist
+        then adds picture to the appropriate view
+    */
+    addOne: function(pic) {
+        var key = this.gb_func(pic);
+
+        if (this.groups[key] == null) {
+            var newview = this.galleryFromPics(key, [pic]);
+
+            this.groups[key] = newview;
+            this.$el.append(newview.render().el)
+            newview.$('.fancybox').attr("rel", key);
+        }
+
+        this.groups[key].collection.add(pic);
+    },
+
+   render: function() {
+       this.$el.html(this.template());
+          
+       _.each(this.groups, function(v,key) { 
+               this.$el.append(v.render().el) 
+               v.$('.fancybox').attr("rel", key);
+               }, this)
+
+       return this;
+    },
+
+    changeSize: function(size) {
+        this.size = size;
+        _.each(this.groups, function(view, gb_key) {
+            view.changeSize(size);
+        })
+    },
+
+    galleryFromPics: function(gb_key, pics) {
+        var opts = _.clone(this.pictures.opts);
+        _.extend(opts, {
+            gb_key: gb_key,
+            gb_name: this.gb_name
+        });
+
+        var newcache = new PicCache(pics, opts);
+        newcache.on('add', this.pictures.addOne);
+
+        var group_view = new GalleryView({
+            collection: newcache,
+            title: this.gb_name + " = " + gb_key,
+            size: this.size
+        });
+        return group_view;
     }
-    currentGroupingStrategyName = grpSchema.name;
-}
-/**
- * Re-Sort all pictures in individual groups.
- */
-function refreshSorting(){
-    var srtSchema, ics, infos, info, e, j, fltLabel,srtKeyDiv,srtInfos,currentGroups;
-    srtSchema = getSortSchema();
-    currentGroups =$('.galleryContainer');
-    for(var i = 0; i < currentGroups.length ;i++){
-	gc = currentGroups[i];
-	ics = $(gc).find('.item-container');
-	infos = $.map(ics,
-		      function(e,i){
-			  info = {elt:e};
-			  $.extend(info,$(e).data().info);
-			  return info;
-		      });
-	srtInfos = sorted(infos,function(x,y){
-			    return compare(srtSchema.strategy.keyFun(x)
-					   ,srtSchema.strategy.keyFun(y));
-			});
 
-	e = $.each(srtInfos,function(){$(this.elt).prependTo($(this.elt).parent())});
-	htext = $(gc).find('.galleryHeaderText');
-	htext.text(htext.data().defaultName + " - Sorted by "+
-		   (srtSchema.strategy.hasOwnProperty('displayFun')
-		    ?srtSchema.strategy.displayFun()
-		    :srtSchema.name)
-		   +".");
-    }
-}
-function refreshAggregates(){
-    var aggregateContainers, i;
-    aggregateContainers = $('.aggregateGalleryContainer');
-    for ( i = 0; i <  aggregateContainers.length ; i++){
+});
 
-	ac = aggregateContainers[i];
-	gallery = $(ac).find('.galleryRow')
-	if($(ac).attr('name') == 'highlights'){
-	    $(gallery).empty();
-	    keyFun = function(e){
-		return e.favorites;
-	    }
-	    pics = $('.item-container').sort(
-			  function(x,y){
-			      return compare(keyFun($(x).data().info),
-					     keyFun($(y).data().info));
-			  }).slice(0,3);
-	    for(j = 0; j < Math.min(3,pics.length); j++){
-		pic = pics[j];
-		$(gallery).prepend(
-		    $('<span>',{
-			  'class':'highlight-image collapsed item-container'})
-			.data({'info':$(pic).data().info})
-		    
-			.append(
-			    $('<div>',
-			      {'class':'highlight-image-container'})
-				.append( 
-				    $('<a>',
-				      {'class':'fancybox item nofancy',
-				       'rel':'group',
-				       'href':$(pic).data().info.file_address
-				      })
-					.append(
-					    $('<img>',
-					      {'src':
-					       $(pic).data().info.file_address,
-					       'width':'100%',
-					       'alt':""}))))
-			.hover(function(){
-				   $(this).addClass('expanded');
-			       },function(){
-				   $(this).removeClass('expanded');
-			       })
-			.append(highlightClickLabel($(pic).data().info)));
-		    ;
-	    
 
-	    }
-	}
 
-    }
-}
-function highlightClickLabel(info){
-    label = $('<div>',{'class':'fancybox-label above'})
-	.append($('<span>',{'class':'labelNode'})
-		.text(info.name));
-    label.click(
-	function(){
-	    $(this)
-		.append($('<input>')
-			.val($(this).text())
-			.blur(function(){
-				  info = 
-				      $(this)
-					.parentsUntil('.item-container')
-					.last()
-					.parent()
-					.data().info;
-				  info.name = $(this).val();
-				  $.getJSON(
-				      '/sync/pictures/'+sessionInfo.bestKey,
-				      {picsListJSON:
-				       JSON.stringify(
-					   [
-					       info
-					   ])}, updateGallery
-				  );
-				  $(this).siblings('.labelNode')
-				      .css('visibility', 'visible')
-				      .css('display','block')
-				      .text($(this).val());
-				  $(this).parent().css('color', 'red');
-				  $(this).remove();
-			      }
-			     ));
-	    var inp = $(this).find('input');
-	    inp.select();
-	    console.log('hiding');
-	    $(this).children('.labelNode').css('display','none');
-	    
-	});
-    return label;
-    
+
+function render_group(opts) {
+    opts = opts || {};
+    _.extend(opts, {
+        collection: cache,
+        gb_func: function(pic) {return pic.get('day')},
+        gb_name: 'day'
+    });
+    var gallery = new GroupView(opts)
+    var el = gallery.render().el;
+    $(".galleriesContainer").empty().append(el);
+    curview = gallery;
 }
 
-function requestServerUpdate(){
-    $.getJSON('/pics/getPicsJSON/'+sessionInfo.bestKey,
-	      {},
-	      serverUpdateCallback);
+function render_norm() {
+    var opts = {collection: cache};
+    var gallery = new GalleryView(opts);
+    var el = gallery.render().el;
+    $(".galleriesContainer").empty().append(el);
+    curview = gallery;
+    console.log('rendernorm done')
 }
 
-function startup(){
-    requestServerUpdate();
-}
-$(startup);
+
+
+
+$(function() {
+    var piccache = new PicCache([], {
+        url: '/pics/' + sessionInfo.bestKey
+    });
+    piccache.reset(initial_pictures)
+
+    cache = piccache;
+    render_norm();
+});
+
+
+

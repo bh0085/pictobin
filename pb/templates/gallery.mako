@@ -1,101 +1,64 @@
-<%inherit file="/base.mako" />
+
+<%inherit file="base.mako"/>
+
+
 <%def name="body_contents()">
 
-<style type="text/css">
-  .sidebar-nav {
-  padding: 9px 0;
-  }
-</style>
 
-
+<!--file upload (hidden) form -->
 <div class="container-fluid">
-  <div class="row-fluid" style="z-index:100; position:relative;">
-    <div class="aggregateGalleryContainer" name='highlights'>
-      <div class="span12">
-	<h3>Event Highlights</h3>
-      </div>
-      <br/>
-      <br/>
-      <div class="galleryRow">
-      </div>
-    </div>
-  </div>
-  <br/>
+
 
   <div class="row-fluid">
-    <div class="span2">
-      <div class="well sidebar-nav">
-	<ul class="nav nav-list">
-	  <li class="nav-header nav-sort">Sort</li>
-          <li class="nav-item nav-sort" ngroup="sort">
-	    <a href="#" name="time">Date</a></li>
-          <li class="nav-item nav-sort" ngroup="sort">
-	    <a href="#" name="favorites">Favorites</a></li>
-          <li class="nav-item nav-sort" ngroup="sort">
-	    <a href="#" name="name">Name</a></li>
-          <li class="nav-item nav-sort" ngroup="sort">
-	    <a href="#" name="comments">Comments</a></li>
-          <li class="nav-header nav-group">Group</li>
-          <li class="nav-item nav-group" ngroup="group">
-	    <a href="#" name="single">One</a></li>
-          <li class="nav-item nav-group" ngroup="group">
-	    <a href="#" name="creator">Creator</a></li>
-          <li class="nav-item nav-group" ngroup="group">
-	    <a href="#" name="day">Day</a></li>
-          <li class="nav-header nav-filter">Filter</li>
-          <li class="nav-item nav-filter" ngroup="filter">
-	    <a href="#" name="mine">Mine</a></li>
-	</ul>
-      </div><!--/.well -->
-      <div class="sidebar-nav" style="position:relative;">
 
-	<div class="row-fluid">
-	  <div class="span12">
-	    <span class="btn btn-primary btn-large sidebar-clicker download-button" onClick="downloadAlbum()">
-	      <script>
-		function downloadAlbum(ev){
-		var keyCode="${bestKey | n}"
-                $.ajax({
-                       type: "get",
-                       url: "/export/downloadEvent/"+keyCode,
-                       /*data: JSON.stringify({}),*/
-                       dataType: "json",
-                       success: function(data, textStatus) {
-		console.log("SUCCESS")
-                           if (data.redirect) {
-                               // data.redirect contains the string URL to redirect to
-                               window.location.href = data.redirect;
-                           }
-                           else {
-                               // data.form contains the HTML for the replacement form
-                               $("#myform").replaceWith(data.form);
-                           }
-                       }
-                   });
-		}
-	      </script>
-	      <i class="icon-download-alt icon-white"></i>
-	    </span>
-	  </div>
-	</div>
-	<%include file="/gallery_includes/fileUploadTemplatesAndGallery.mako"/>
-      </div>
-    </div><!--/span-->
-    <div class="span10">
+    <div class="span12">
+
+
+      <ul class="nav nav-pills">
+        <li class="active">
+          <a href="#" onclick='render_norm()'>List</a>
+        </li>      
+        <li>
+          <a href="#" onclick='render_group()'>Groups</a>
+        </li>
+        <li class="button">
+          <a href="#" onclick='cache.fetch({data:{offset:cache.models.length, limit:5}, add:true})'>Get more data</a>
+        </li>
+        <li class="button">
+          <a href="#" onclick='cache.fetch({add:false})'>Get all data</a>
+        </li>    
+<!--        <li class="right" style="float:right;">
+          <a href="#" onclick='$(".pic-info").hide()'>Hide Labels</a>
+        </li>    -->
+        <li style="float:right;">
+          <a href="#" onclick='curview.changeSize("mid")'>Preview Mode</a>
+        </li>
+        <li style="float:right;">
+          <a href="#" onclick='curview.changeSize("big")'>Full Mode</a>
+        </li>
+      </ul>
+
+
+      <%include file="/gallery_includes/fileUploadTemplatesAndGallery.mako"/>
+
+
       <div class="container-fluid galleriesContainer">
       </div>
+
+
+      <!-- footer -->
       <div class="row-fluid">
-	<div class="span12">
-	  <p style="text-align:center;">
-	    <i>${sessionInfo['eventInfo']['name']}</i> 
-	    was created by ${sessionInfo['eventInfo']['creator_name']} 
-	    on ${sessionInfo['eventInfo']['added']}.
-	  </p>
-	</div>
+      	<div class="span12">
+      	  <p style="text-align:center;">
+      	    <i>${sessionInfo['eventInfo']['name']}</i> 
+      	    was created by ${sessionInfo['eventInfo']['creator_name']} 
+      	    on ${sessionInfo['eventInfo']['added']}.
+      	  </p>
+      	</div>
       </div>
 
 
-    </div> <!--closes span9 -->
+    </div> <!--closes span12 -->
   </div> <!--closes row-fluid-->
 </div> <!--closes container-fluid-->
 
@@ -104,4 +67,49 @@
   <h3>Drag JPEGs onto your browser and lets get moving!</h3>
 </div>
 
+
+<div style="display:none;">
+
+<div id='picview-template'>
+  <div class="big-view">
+
+    <div class="pic-info">
+      <span class="name">{{name}}</span> by
+      <span class="creator">{{creator_name}}</span>
+    </div>
+
+    <div class="pic-container" >
+      <a  href="{{file_address}}" 
+          class="fancybox nofancy" rel="group" 
+          title="{{name}} by {{creator_name}} at {{created}}">
+        <img class="big-thumbnail" src="{{big_thumbnail_address}}"/>
+        <img class="mid-thumbnail" src="{{mid_thumbnail_address}}"/>      
+        <img class="small-thumbnail" src="{{small_thumbnail_address}}"/>
+      </a>
+      <div style="clear:both"></div>      
+    </div>
+
+  </div>
+</div>
+
+
+<div id='gallery-template'>
+  <h3>{{title}}</h3>
+  <div class="row-fluid">
+      <div class='gallery-container thumbnails span12'></div>
+      <div class='span7 pic-preview' style="display:none;">
+        <div class='preview-container' style="min-height: 300px"></div>
+        <div style="clear:both"></div>
+      </div>
+  </div>
+  <div style="text-align:center">
+    <h2><a class="link button">Get More</a></h2>
+  </div>
+</div>
+
+
+<div id='group-gallery-template'>
+</div> 
+
 </%def>
+

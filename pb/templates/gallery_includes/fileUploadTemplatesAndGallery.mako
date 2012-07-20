@@ -5,8 +5,8 @@
   <div class="row-fluid">
     <div class="span12">
       <span class="btn btn-primary btn-large btn-success fileinput-button  sidebar-clicker">
-	<i class="icon-plus icon-white"></i>
-        <input type="file" name="files[]" multiple>
+	       <i class="icon-plus icon-white"></i> Upload Some Photos
+        <input type="file" name="files[]" multiple></input>
       </span>
     </div>
   </div>

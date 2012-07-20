@@ -18,17 +18,29 @@ class Picture(Base):
     def __init__(self,**kwargs):
         for k,v in kwargs.iteritems():
             self.__setattr__(k,v)
+
+
     def toGalleryDict(self):
         metas = dict([(m.key,m.value) for m in self.metadata])
         if metas.has_key('DateTimeOriginal'):
             import json
             import datetime, dateutil.parser
             val = json.loads(metas['DateTimeOriginal'])
+            arr = val.split()
+            arr[0] = arr[0].replace(':', '-')
+            val = ' '.join(arr)
+
+            
             parsed = dateutil.parser.parse(val)
             td = (parsed - datetime.datetime(1986,4,22) )
             age = td.days * 60*60*24 + td.seconds
+
+            created = val
+            day = str(parsed.date())
         else:
             age = 0
+            created = ''
+            day = str(datetime.date.today())
             
         from ..utils import file_helpers as fh
         return {
@@ -42,12 +54,17 @@ class Picture(Base):
             'file_name':fh.getFileNameByPictureId(self.id),
             'small_thumbnail_address':\
                 fh.getThumbnailAddressByPictureId(self.id,'small'),
+            'mid_thumbnail_address':\
+                fh.getThumbnailAddressByPictureId(self.id,'mid'),
             'big_thumbnail_address':\
                 fh.getThumbnailAddressByPictureId(self.id,'big'),
             'meta':metas,
-            'age':age
-            
+            'age':age,
+            'created': created,
+            'day': day
             }
+    
+    
     def takenDateString(self):
         metas = dict([(m.key,m.value) for m in self.metadata])
         if metas.has_key('DateTimeOriginal'):
